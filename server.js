@@ -18,9 +18,17 @@ const app = express();
 const server = createServer(app);
 
 // Initialize Socket.io
+const getCorsOrigin = () => {
+    if (process.env.NODE_ENV === 'production') {
+        // In production, allow the frontend URL if specified, otherwise allow all origins
+        return process.env.FRONTEND_URL || process.env.CLIENT_URL || true;
+    }
+    return 'http://localhost:5173';
+};
+
 const io = new Server(server, {
     cors: {
-        origin: 'http://localhost:5173',
+        origin: getCorsOrigin(),
         credentials: true,
         methods: ['GET', 'POST']
     }
@@ -61,12 +69,47 @@ io.on('connection', (socket) => {
     });
 });
 
-app.use(cors({
-    origin: process.env.NODE_ENV === 'production' 
-        ? process.env.FRONTEND_URL || 'http://localhost:5173'
-        : 'http://localhost:5173',
+// CORS configuration
+const corsOptions = {
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        if (process.env.NODE_ENV === 'production') {
+            // In production, check if origin matches allowed URLs
+            const allowedOrigins = [
+                process.env.FRONTEND_URL,
+                process.env.CLIENT_URL,
+                process.env.ORIGIN
+            ].filter(Boolean);
+            
+            // If no specific origin is set, allow all (for same-domain deployments)
+            if (allowedOrigins.length === 0) {
+                return callback(null, true);
+            }
+            
+            // Check if the origin is in the allowed list
+            if (allowedOrigins.some(allowed => origin.includes(allowed) || allowed.includes(origin))) {
+                return callback(null, true);
+            }
+            
+            // For same-domain requests (when frontend is served from same server)
+            return callback(null, true);
+        } else {
+            // In development, allow localhost
+            if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+                return callback(null, true);
+            }
+        }
+        
+        callback(null, true);
+    },
     credentials: true,
-}));
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // API routes - must come before the catch-all route

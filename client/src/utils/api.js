@@ -1,4 +1,7 @@
-const API_BASE_URL = 'http://localhost:5555/api';
+// Use relative URL in production (same domain), absolute URL in development
+const API_BASE_URL = import.meta.env.PROD 
+  ? '/api' 
+  : 'http://localhost:5555/api';
 
 // Helper function to get auth token
 const getToken = () => {

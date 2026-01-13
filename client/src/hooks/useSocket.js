@@ -1,7 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 
-const SERVER_URL = 'http://localhost:5555';
+// Use current origin in production (same domain), localhost in development
+const SERVER_URL = import.meta.env.PROD 
+  ? window.location.origin 
+  : 'http://localhost:5555';
 
 export function useSocket(userId, onNotification, onNewBid, onNewGig) {
   const socketRef = useRef(null);
