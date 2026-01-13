@@ -66,6 +66,15 @@ app.use(cors({
 }));
 app.use(express.json());
 
+
+if (process.env.NODE_ENV === 'production') {
+    app.use(express.static(path.join(__dirname, '/client/dist')));
+    app.get('*', (req, res) => {
+        res.sendFile(path.resolve(__dirname, 'client', 'dist', 'index.html'));
+    })
+}
+
+
 app.use('/api/auth', userControllers);
 app.use('/api/gigs', gigControllers);
 app.use('/api/bids', bidControllers);
