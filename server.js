@@ -85,12 +85,11 @@ if (process.env.NODE_ENV === 'production') {
     // Catch-all handler: send back React's index.html file for any non-API routes
     // This middleware catches all requests that don't match API routes
     app.use((req, res, next) => {
-        // Skip if it's an API route
-        if (req.path.startsWith('/api')) {
-            return next();
+        if (req.method === 'GET' && !req.path.startsWith('/api')) {
+            res.sendFile(path.resolve(__dirname, 'client', 'dist', 'index.html'));
+        } else {
+            next();
         }
-        // For all other routes, send the React app
-        res.sendFile(path.resolve(__dirname, 'client', 'dist', 'index.html'));
     });
 }
 
