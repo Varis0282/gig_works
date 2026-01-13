@@ -62,27 +62,37 @@ io.on('connection', (socket) => {
 });
 
 app.use(cors({
-    origin: 'http://localhost:5173',
+    origin: process.env.NODE_ENV === 'production' 
+        ? process.env.FRONTEND_URL || 'http://localhost:5173'
+        : 'http://localhost:5173',
     credentials: true,
 }));
 app.use(express.json());
 
-const __dirname = path.resolve();
-
-if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.join(__dirname, '/client/dist')));
-    app.get('*', (req, res) => {
-        res.sendFile(path.resolve(__dirname, 'client', 'dist', 'index.html'));
-    })
-}
-
-
+// API routes - must come before the catch-all route
 app.use('/api/auth', userControllers);
 app.use('/api/gigs', gigControllers);
 app.use('/api/bids', bidControllers);
 app.get('/api/health', (req,res)=>{
     res.status(200).json({message: 'Server is running'});
-})
+});
+
+// Serve static files and catch-all route for production (must be last)
+if (process.env.NODE_ENV === 'production') {
+    const __dirname = path.resolve();
+    app.use(express.static(path.join(__dirname, '/client/dist')));
+    
+    // Catch-all handler: send back React's index.html file for any non-API routes
+    // This middleware catches all requests that don't match API routes
+    app.use((req, res, next) => {
+        // Skip if it's an API route
+        if (req.path.startsWith('/api')) {
+            return next();
+        }
+        // For all other routes, send the React app
+        res.sendFile(path.resolve(__dirname, 'client', 'dist', 'index.html'));
+    });
+}
 
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
